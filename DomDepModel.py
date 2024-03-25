@@ -1,3 +1,5 @@
+# TO DO: refactor to use my DomDep layer class(es)
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
