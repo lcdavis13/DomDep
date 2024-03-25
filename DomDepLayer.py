@@ -3,14 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DomDepResidualLayer(nn.Module):
-    def __init__(self, embed_dim, module_dim, module_count):
+    def __init__(self, in_dim, out_dim, module_dim, module_count):
         super(DomDepResidualLayer, self).__init__()
-        self.embed_dim = embed_dim
+        self.in_dim = in_dim
+        self.out_dim = out_dim
         self.module_dim = module_dim
         self.module_count = module_count
 
         # Weight matrix for compressing into module space
-        self.we0 = nn.Linear(embed_dim, module_dim)
+        self.we0 = nn.Linear(in_dim, module_dim)
 
         # Weight matrix for computing soft weight of each module (domain dependence)
         self.ws = nn.Linear(module_dim, module_count)
@@ -19,7 +20,10 @@ class DomDepResidualLayer(nn.Module):
         self.wm = nn.ModuleList([nn.Linear(module_dim, module_dim) for _ in range(module_count)])
 
         # Weight matrix for computing soft weight of each module (domain dependence)
-        self.we1 = nn.Linear(module_dim, embed_dim)
+        self.we1 = nn.Linear(module_dim, out_dim)
+        
+        # Weight matrix for reshaped skip connection
+        self.we0e1 = nn.Linear(in_dim, out_dim)
 
     def forward(self, h0):
         # Encode into module space
@@ -27,7 +31,7 @@ class DomDepResidualLayer(nn.Module):
         
         # Compute module activations
         module_activations = torch.stack([m(h0_encoded) for m in self.wm])
-        module_activations = F.relu(module_activations)
+        module_activations = F.relu(module_activations) # Do we want ReLU here? TO DO: Check
 
         # Compute module soft weights
         module_weights = self.ws(h0_encoded)
@@ -36,19 +40,23 @@ class DomDepResidualLayer(nn.Module):
         # Mix modules based on domain-dependent soft weights
         mixed_activations = torch.matmul(module_activations.transpose(0, 1), module_weights.unsqueeze(-1)).squeeze(-1)
         
+        # Reshape outputs
+        layer_outputs = self.we1(mixed_activations)
+        h0_skip = self.we0e1(h0)
+        
         # Decode and skip connection
-        decoded_out = self.we1(mixed_activations)
-        h1 = F.relu(decoded_out + h0)
+        h1 = F.relu(layer_outputs + h0_skip)
         return h1
 
 if __name__ == "__main__":
-    embed_dim = 4
+    in_dim = 5
     module_dim = 3
     module_count = 2
-    layer = DomDepResidualLayer(embed_dim, module_dim, module_count)
+    out_dim = 4
+    layer = DomDepResidualLayer(in_dim, out_dim, module_dim, module_count)
 
     # Test input
-    i = torch.randn(embed_dim)
+    i = torch.randn(in_dim)
     print("Input:", i)
 
     # Forward pass
