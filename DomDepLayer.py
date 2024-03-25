@@ -1,3 +1,8 @@
+# Generalized architecture for domain-dependent mixture of linear layers
+# Input, output, and module space have different dimensionality.
+# Linear layers are used to encode and decode the residual stream space into and out of the module space, as well as project the additive skip connection into the output space.
+# Future work: investigate if the encoding and decoding matrices can somehow be a decomposition of the skip-projection matrix (though I think this is unlikely without data loss since the module space is presumably smaller than the in and out spaces).
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,7 +15,7 @@ class DomDepResidualLayer(nn.Module):
         self.module_dim = module_dim
         self.module_count = module_count
 
-        # Weight matrix for compressing into module space
+        # Weight matrix for encoding/compressing into module space
         self.we0 = nn.Linear(in_dim, module_dim)
 
         # Weight matrix for computing soft weight of each module (domain dependence)
@@ -19,7 +24,7 @@ class DomDepResidualLayer(nn.Module):
         # 3D weight matrix for computing each module's activations
         self.wm = nn.ModuleList([nn.Linear(module_dim, module_dim) for _ in range(module_count)])
 
-        # Weight matrix for computing soft weight of each module (domain dependence)
+        # Weight matrix for decoding into the space of the residual stream
         self.we1 = nn.Linear(module_dim, out_dim)
         
         # Weight matrix for reshaped skip connection

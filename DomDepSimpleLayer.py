@@ -1,3 +1,6 @@
+# Simplest case architecture for domain-dependent mixture of linear layers:
+# data dimensionality remains the same throughout the network, requiring no linear projections other than the ones implicitly occurring in the modules and soft weight calculation.
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

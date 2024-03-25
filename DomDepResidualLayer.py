@@ -1,3 +1,8 @@
+# Architecture for domain-dependent mixture of linear layers, partially generalized for the specific case of residual stream a la Elhage et al 2021:
+# Input and output have same dimensionality, but the module mixture occurs with different dimension, presumably a subspace (module_dim << embed_dim).
+# Linear layers are used to encode and decode the residual stream space into and out of the module space.
+# Future work: investigate if the decoding matrix can be the inverse of the encoding matrix instead of separate parameters.
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +14,7 @@ class DomDepResidualLayer(nn.Module):
         self.module_dim = module_dim
         self.module_count = module_count
 
-        # Weight matrix for compressing into module space
+        # Weight matrix for encoding/compressing into module space
         self.we0 = nn.Linear(embed_dim, module_dim)
 
         # Weight matrix for computing soft weight of each module (domain dependence)
@@ -18,7 +23,7 @@ class DomDepResidualLayer(nn.Module):
         # 3D weight matrix for computing each module's activations
         self.wm = nn.ModuleList([nn.Linear(module_dim, module_dim) for _ in range(module_count)])
 
-        # Weight matrix for computing soft weight of each module (domain dependence)
+        # Weight matrix for decoding into the space of the residual stream
         self.we1 = nn.Linear(module_dim, embed_dim)
 
     def forward(self, h0):
