@@ -8,17 +8,19 @@ from torch.optim import Adam
 from AssociativeRecallDataset import AssociativeRecallDataset
 from DomDepModel import DomDepModel
 
-# Assuming AssociativeRecallDataset is defined as before.
-
-# Updated DomDepModel with embedding layer as described in the previous response.
 
 # Parameters
-sequence_length = 5
-vocab_size = 10
+sequence_length_power = 5
+vocab_size = 20
 dataset_size = 10000
-train_size = int(dataset_size * 0.8)
-test_size = dataset_size - train_size
+sequence_length = 2 ** sequence_length_power
+
+holdout_ratio = 0.2
+test_size = int(dataset_size * holdout_ratio)
+train_size = dataset_size - test_size
+
 batch_size = 64
+
 embedding_dim = 50  # Dimension of the embedding vector
 hidden_size = 128
 output_size = vocab_size + 1  # Assuming the output size is the same as vocab size, plus one for zero padding/index
